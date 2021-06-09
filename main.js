@@ -1,31 +1,52 @@
 const axios = require('axios').default;
 const fs = require('fs');
-
+const csv = require('@fast-csv/parse');
+const path = require('path');
+const { downloadShipmentLabel } = require('./stallionAPI.service');
 
 const API_URI = 'https://ship.stallionexpress.ca/api/v3';
 const API_TOKEN = 'ZkmSAnZR1VQIqvL1H9Un1KbqIfdubxmX2Zz2IwG9IlzeMZSav2kZyNrzml9F';
 const label_path = 'labels'
 let ship_code = '210607CTTY';
 
+let shipments = [];
 
-axios.get(`${API_URI}/shipments/${ship_code}`, {
-    headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'accept': 'application/json'
-    }
-}).then(res => {
-    // const file = fs.createWriteStream(`${label_path}/${ship_code}.pdf`);
-    // res.data.pipe(file);
-    // console.log(res);
-    // console.log(res.data.label);
-    // console.log(typeof res.data.label);
-
-    const labelData = Buffer.from(res.data.label, "base64");
-    fs.writeFile(`labels/${ship_code}.pdf`, labelData, (err) => {
-        if (err) throw err;
-        console.log('The file has been saved!');
+fs.createReadStream(path.resolve(__dirname, 'assets', 'Stallion_Export.csv'))
+    .pipe(csv.parse({ headers: true, trim: true }))
+    .on('error', error => console.error(error))
+    .on('data', row => {
+        shipments.push(row);
+    })
+    .on('end', async (rowCount) => {
+        // console.log(shipments[Math.floor(Math.random() * 10)]);
+        shipments.forEach( async (shipment, index) => {
+            if (shipment['Order ID'] === '2078205814') {
+                await downloadShipmentLabel(shipment['Ship Code']);
+            }
+        })
+        // console.log(shipments.length);
     });
-});
+
+
+
+// axios.get(`${API_URI}/shipments/${ship_code}`, {
+//     headers: {
+//         'Authorization': `Bearer ${API_TOKEN}`,
+//         'accept': 'application/json'
+//     }
+// }).then(res => {
+//     // const file = fs.createWriteStream(`${label_path}/${ship_code}.pdf`);
+//     // res.data.pipe(file);
+//     // console.log(res);
+//     // console.log(res.data.label);
+//     // console.log(typeof res.data.label);
+
+//     const labelData = Buffer.from(res.data.label, "base64");
+//     fs.writeFile(`labels/${ship_code}.pdf`, labelData, (err) => {
+//         if (err) throw err;
+//         console.log('The file has been saved!');
+//     });
+// });
 
 // var fetch = require('node-fetch');
 
